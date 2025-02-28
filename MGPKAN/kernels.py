@@ -8,7 +8,7 @@ from torch.linalg import cholesky_ex, solve_triangular
 from torch.nn import Module, Parameter
 from torch.nn import functional as F
 
-from .utils import MaternExpectation, SquaredExponentialExpectation
+from .utils import SquaredExponentialExpectation
 
 
 
@@ -94,40 +94,5 @@ class SquaredExponentialKernel(Kernel):
 		self, lengthscale: Tensor, mu: Optional[Tensor] = None, sigma_sq: Optional[Tensor] = None,
 	) -> Tensor:
 		return SquaredExponentialExpectation(lengthscale, mu, sigma_sq)
-
-
-class MaternKernel(Kernel):
-
-	def __init__(self, nu: float, size: list[int]):
-		Kernel.__init__(self, size)
-
-		assert nu in [0.5, 1.5, 2.5]
-		self.nu = nu  # nu
-
-	def expectation(
-		self, lengthscale: Tensor, mu: Optional[Tensor] = None, sigma_sq: Optional[Tensor] = None,
-	) -> Tensor:
-		return MaternExpectation(self.nu, lengthscale, mu, sigma_sq)
-
-	def extra_repr(self) -> str:
-		return f"nu={self.nu}"
-
-
-class Matern0p5Kernel(MaternKernel):
-
-	def __init__(self, size: list[int]):
-		MaternKernel.__init__(self, 0.5, size)
-
-
-class Matern1p5Kernel(MaternKernel):
-
-	def __init__(self, size: list[int]):
-		MaternKernel.__init__(self, 1.5, size)
-
-
-class Matern2p5Kernel(MaternKernel):
-
-	def __init__(self, size: list[int]):
-		MaternKernel.__init__(self, 2.5, size)
 
 

@@ -1,14 +1,12 @@
 
-import math
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 import torch
 from torch import Tensor
-from torch.nn import Module, Parameter
+from torch.nn import Parameter
 
 from .abstr import Layer
-from .kernels import Matern0p5Kernel, Matern1p5Kernel, Matern2p5Kernel, SquaredExponentialKernel
-from .means import AbsoluteExponentialRBF, GaussianRBF
+from .kernels import SquaredExponentialKernel
 
 
 
@@ -20,16 +18,13 @@ class FCLayer(Layer):
 		out_dim: int,
 		num_induc: int,
 		num_comp: int = 1,
-		kernel : Optional[Union[str, Callable]] = "SquaredExponentialKernel",
 	):
 		Layer.__init__(self, in_dim, out_dim)
 		
 		self.num_induc = num_induc  # M
 		self.num_comp = num_comp  # K
-		if isinstance(kernel, str):
-			kernel = eval(kernel)
-		assert kernel is None or callable(kernel)
-		self.kernel = kernel([out_dim, in_dim, num_comp])
+
+		self.kernel = SquaredExponentialKernel([out_dim, in_dim, num_comp])
 		# z ~ [K, D, Q, M]
 		self.induc_loc = Parameter(torch.rand(out_dim, in_dim, num_comp, num_induc).mul(2).sub(1))
 		self.polynomial_coef = Parameter(torch.zeros(out_dim, in_dim, num_comp, num_induc))
