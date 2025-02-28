@@ -42,10 +42,8 @@ class FCLayer(Layer):
 		Cuf = self.kernel.Cuf(self.induc_loc, x_mean, x_var)
 		# Cff ~ [(B, D, Q, K)]
 		Cff = self.kernel.Cff(x_mean, x_var)
-		# E[u(x)] ~ [D, Q, K, M]
-		E_u = self.polynomial_coef[0]
 
-		w_mean = Kuu_inv.matmul(E_u.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)
+		w_mean = Kuu_inv.matmul(self.polynomial_coef.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)
 		w_var = Cff.sub(Kuu_inv.matmul(Cuf.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)).mul(self.kernel.outputscale)
 		return w_mean, w_var
 
