@@ -19,7 +19,6 @@ class MGPKAN(Network):
 		hidden_dims: Optional[Union[int, list[int]]],
 		num_induc: Union[int, list[int]],
 		num_comp: Union[int, list[int]] = 1,
-		kernel : list[Optional[str]] = "SquaredExponentialKernel",
 	):
 		Network.__init__(self, in_dim, out_dim, hidden_dims)
 
@@ -31,16 +30,12 @@ class MGPKAN(Network):
 			num_comp = [num_comp] * (len(self.dims)-1)
 		assert len(num_comp) == len(self.dims)-1
 
-		if kernel is None or isinstance(kernel, str):
-			kernel = [kernel] * (len(self.dims)-1)
-		assert len(kernel) == len(self.dims)-1
-
 		layerdict = {}
 		for i in range(len(self.dims)-1):
 			if i > 0:
 				layerdict[f"norm_{i}"] = NormLayer()
 			layerdict[f"fc_{i+1}"] = FCLayer(
-				self.dims[i], self.dims[i+1], num_induc[i], num_comp[i], kernel[i],
+				self.dims[i], self.dims[i+1], num_induc[i], num_comp[i],
 			)
 		self.layers = ModuleDict(layerdict)
 		self.inputs_normalized = False
@@ -79,10 +74,9 @@ class MGPKANR(MGPKAN, Regr):
 		hidden_dims: Optional[Union[int, list[int]]],
 		num_induc: Union[int, list[int]],
 		num_comp: Union[int, list[int]] = 1,
-		kernel : list[Optional[str]] = "SquaredExponentialKernel",
 		min_noise_var: float = 1e-6,
 	):
-		MGPKAN.__init__(self, in_dim, out_dim, hidden_dims, num_induc, num_comp, kernel)
+		MGPKAN.__init__(self, in_dim, out_dim, hidden_dims, num_induc, num_comp)
 		Regr.__init__(self, out_dim, min_noise_var)
 
 	def loglikelihood(self, x: Tensor, y: Tensor) -> Tensor:

@@ -59,7 +59,7 @@ class FCLayer(Layer):
 		return f_mean, f_var
 
 	def extra_repr(self) -> str:
-		return f"in_dim={self.in_dim}, out_dim={self.out_dim}, num_induc={self.num_induc}, num_comp={self.num_comp}"
+		return f"in_dim={self.in_dim}, out_dim={self.out_dim}\nnum_induc={self.num_induc}, num_comp={self.num_comp}"
 
 
 class NormLayer(Layer):
