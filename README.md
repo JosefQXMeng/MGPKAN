@@ -1,2 +1,2 @@
 # MGPKAN
-Mixtures of Gaussian Processes as Activation Functions of Probabilistic Kolmogorov-Arnold Networks
+**M**ixtures of **G**aussian **P**rocesses as Activation Functions for Probabilistic **K**olmogorov-**A**rnold **N**etworks
