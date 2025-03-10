@@ -48,7 +48,7 @@ class Kernel(Module, ABC):
 
 	def Cuf(self, induc_loc: Tensor, q_mean: Tensor, q_var: Optional[Tensor] = None) -> Tensor:
 		"""
-		z ~ [D, Q, Z, M]
+		z ~ [D, Q, K, M]
 		q_mean & q_var ~ [B, D, Q, K]
 		->
 		Cuf ~ [B, D, Q, K, M]

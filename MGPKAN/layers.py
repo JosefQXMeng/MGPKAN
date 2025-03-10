@@ -66,6 +66,7 @@ class FCLayer(Layer):
 		return u.sub(l).mul(self._center.sigmoid()).add(l)
 	
 	def transform_induc_loc(self) -> None:
+		# [D, Q, K, M]
 		l = self.partition[...,:-1].unsqueeze(-1)
 		u = self.partition[...,1:].unsqueeze(-1)
 		self.induc_loc = u.sub(l).mul(self._induc_loc.sigmoid()).add(l)
@@ -94,7 +95,7 @@ class FCLayer(Layer):
 		Kuu_inv = self.kernel.Kuu_inv(self.induc_loc, self.induc_noise)
 		# Cuf ~ [B, D, Q, M]
 		Cuf = self.kernel.Cuf(self.induc_loc, q_mean, q_var)
-		# Cff ~ [(B, D, Q)]
+		# Cff ~ [B, D, Q]
 		Cff = self.kernel.Cff(q_var)
 		induc_value = self.induc_value_func(self.induc_loc, self.kernel.lengthscale, q_mean, q_var)
 		w_mean = Kuu_inv.matmul(induc_value.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)

@@ -56,11 +56,13 @@ class InducValueFunc(Module):
 		g_var = torch.zeros([]) if q_var is None else q_var.mul(lengthscale).div(var_sum)
 		return g_mean, g_var
 	
-	def forward(self, lengthscale: Tensor, induc_loc: Tensor, q_mean: Tensor, q_var: Optional[Tensor] = None) -> Tensor:
+	def forward(
+		self, lengthscale: Tensor, induc_loc: Tensor, q_mean: Tensor, q_var: Optional[Tensor] = None,
+	) -> Tensor:
 		"""
 		q_mean & q_var ~ [B, D, Q, K]
 		->
-		E[u(x)] ~ [B, D, D, K, M]
+		E[u(x)] ~ [B, D, Q, K, M]
 		"""
 		E_u = self.induc_value[0]
 		if self.degree:
