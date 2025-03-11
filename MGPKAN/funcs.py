@@ -17,7 +17,7 @@ class InducValueFunc(Module):
 		Module.__init__(self)
 
 		self.degree = degree  # P
-		self.induc_value = Parameter(torch.zeros(degree+1, *size, num_induc))
+		self.induc_value_coef = Parameter(torch.zeros(degree+1, *size, num_induc))
 		self.init_moment_coef(degree)
 
 	def init_moment_coef(self, degree: int) -> None:
@@ -64,11 +64,11 @@ class InducValueFunc(Module):
 		->
 		E[u(x)] ~ [B, D, Q, K, M]
 		"""
-		E_u = self.induc_value[0]
+		E_u = self.induc_value_coef[0]
 		if self.degree:
 			g_mean, g_var = self.compute_density(induc_loc, lengthscale, q_mean, q_var)
 			for p in range(1, self.degree+1):
-				E_u = self.compute_moment(g_mean, g_var, p).mul(self.induc_value[p]).add(E_u)
+				E_u = self.compute_moment(g_mean, g_var, p).mul(self.induc_value_coef[p]).add(E_u)
 		return E_u
 
 

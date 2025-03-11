@@ -34,7 +34,7 @@ class FCLayer(Layer):
 		# kernel ~ [D, Q, K]
 		self.kernel = SquaredExponentialKernel([out_dim, in_dim, num_comp])
 		# z ~ [D, Q, K, M]
-		self._induc_loc = Parameter(torch.rand(out_dim, in_dim, num_comp, num_induc).mul(2).sub(1).mul(2))
+		self._induc_loc = Parameter(torch.rand(out_dim, in_dim, num_comp, num_induc).mul(2).sub(1))
 		# induc_noise ~ [D, Q, K]
 		self._induc_noise = Parameter(torch.ones(out_dim, in_dim, num_comp).mul(1e-2).exp().sub(1).log())
 		# induc_value ~ [P+1, D, Q, K, M]
@@ -74,16 +74,16 @@ class FCLayer(Layer):
 	@property
 	def induc_noise(self) -> Tensor:
 		return F.softplus(self._induc_noise) + 1e-6
-
-	def compute_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
+	
+	def weighted_input(
+		self, x_mean: Tensor, x_var: Optional[Tensor] = None,
+	) -> tuple[Tensor, Tensor, Union[Tensor, None]]:
 		"""
 		x_mean & x_var ~ [B, Q]
 		->
-		w_mean & w_var ~ [B, D, Q]
+		weight & q_mean & q_var ~ [B, D, Q, K]
 		"""
 		self.transform_partition()
-		self.transform_induc_loc()
-		self.kernel.transform_lengthscale()
 		# weight & q_mean, q_var ~ [B, D, Q, K]
 		if self.weight_func is None:
 			weight = torch.ones([self.num_comp]).div(self.num_comp)
@@ -91,12 +91,31 @@ class FCLayer(Layer):
 			q_var = None if x_var is None else x_var.unsqueeze(1).unsqueeze(-1)
 		else:
 			weight, q_mean, q_var = self.weight_func(self.center, x_mean, x_var)
+		return weight, q_mean, q_var
+	
+	def induc_value(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> Tensor:
+		_, q_mean, q_var = self.weighted_input(x_mean, x_var)
+		self.transform_induc_loc()
+		self.kernel.transform_lengthscale()
+		return self.induc_value_func(self.induc_loc, self.kernel.lengthscale, q_mean, q_var)
+
+	def compute_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
+		"""
+		x_mean & x_var ~ [B, Q]
+		->
+		w_mean & w_var ~ [B, D, Q]
+		"""
+		# weight & q_mean & q_var ~ [B, D, Q, K]
+		weight, q_mean, q_var = self.weighted_input(x_mean, x_var)
+		self.transform_induc_loc()
+		self.kernel.transform_lengthscale()
 		# Kuu_inv ~ [D, Q, M, M]
 		Kuu_inv = self.kernel.Kuu_inv(self.induc_loc, self.induc_noise)
 		# Cuf ~ [B, D, Q, M]
 		Cuf = self.kernel.Cuf(self.induc_loc, q_mean, q_var)
 		# Cff ~ [B, D, Q]
 		Cff = self.kernel.Cff(q_var)
+		# E[u(x)] ~ [B, D, Q, K, M]
 		induc_value = self.induc_value_func(self.induc_loc, self.kernel.lengthscale, q_mean, q_var)
 		w_mean = Kuu_inv.matmul(induc_value.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)
 		w_var = Cff.sub(Kuu_inv.matmul(Cuf.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)).mul(self.kernel.outputscale)
