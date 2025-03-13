@@ -8,7 +8,7 @@ from torch.nn import functional as F
 
 from .abstr import Layer
 from .kernels import SquaredExponentialKernel
-from .funcs import InducValueFunc, WeightFunc
+from .funcs import WeightFunc, InducValueFunc
 
 
 
@@ -81,32 +81,31 @@ class FCLayer(Layer):
 		"""
 		x_mean & x_var ~ [B, Q]
 		->
-		weight & q_mean & q_var ~ [B, D, Q, K]
+		q_mean & q_var & weight ~ [B, D, Q, K]
 		"""
 		self.transform_partition()
-		# weight & q_mean, q_var ~ [B, D, Q, K]
 		if self.weight_func is None:
-			weight = torch.ones([self.num_comp]).div(self.num_comp)
 			q_mean = x_mean.unsqueeze(1).unsqueeze(-1)
 			q_var = None if x_var is None else x_var.unsqueeze(1).unsqueeze(-1)
+			weight = torch.ones([self.num_comp]).div(self.num_comp)
 		else:
-			weight, q_mean, q_var = self.weight_func(self.center, x_mean, x_var)
-		return weight, q_mean, q_var
+			q_mean, q_var, weight = self.weight_func(self.center, x_mean, x_var)
+		return q_mean, q_var, weight
 	
 	def induc_value(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> Tensor:
 		_, q_mean, q_var = self.weighted_input(x_mean, x_var)
 		self.transform_induc_loc()
 		self.kernel.transform_lengthscale()
 		return self.induc_value_func(self.induc_loc, self.kernel.lengthscale, q_mean, q_var)
-
-	def compute_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
+	
+	def unmixed_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor, Union[Tensor, None]]:
 		"""
 		x_mean & x_var ~ [B, Q]
 		->
-		w_mean & w_var ~ [B, D, Q]
+		w_mean & w_var & weight ~ [B, D, Q, K]
 		"""
-		# weight & q_mean & q_var ~ [B, D, Q, K]
-		weight, q_mean, q_var = self.weighted_input(x_mean, x_var)
+		# q_mean & q_var & weight ~ [B, D, Q, K]
+		q_mean, q_var, weight = self.weighted_input(x_mean, x_var)
 		self.transform_induc_loc()
 		self.kernel.transform_lengthscale()
 		# Kuu_inv ~ [D, Q, M, M]
@@ -119,6 +118,15 @@ class FCLayer(Layer):
 		induc_value = self.induc_value_func(self.induc_loc, self.kernel.lengthscale, q_mean, q_var)
 		w_mean = Kuu_inv.matmul(induc_value.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)
 		w_var = Cff.sub(Kuu_inv.matmul(Cuf.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)).mul(self.kernel.outputscale)
+		return w_mean, w_var, weight
+
+	def compute_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
+		"""
+		x_mean & x_var ~ [B, Q]
+		->
+		w_mean & w_var ~ [B, D, Q]
+		"""
+		w_mean, w_var, weight = self.unmixed_w(x_mean, x_var)
 		w_mean = w_mean.mul(weight).sum(-1)
 		w_var = w_var.mul(weight.pow(2)).sum(-1)
 		return w_mean, w_var
