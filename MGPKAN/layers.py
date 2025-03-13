@@ -27,20 +27,21 @@ class FCLayer(Layer):
 		
 		self.num_induc = num_induc  # M
 		self.num_comp = num_comp  # K
+		s = [out_dim, in_dim, num_comp]
 		# partition ~ [D, Q, K-1]
 		self.init_partition()
 		# center ~ [D, Q, K]
-		self._center = Parameter(torch.zeros(out_dim, in_dim, num_comp))
+		self._center = Parameter(torch.zeros(s))
 		# kernel ~ [D, Q, K]
-		self.kernel = SquaredExponentialKernel([out_dim, in_dim, num_comp])
+		self.kernel = SquaredExponentialKernel(s)
 		# z ~ [D, Q, K, M]
-		self._induc_loc = Parameter(torch.rand(out_dim, in_dim, num_comp, num_induc).mul(2).sub(1))
+		self._induc_loc = Parameter(torch.rand(*s, num_induc).mul(2).sub(1))
 		# induc_noise ~ [D, Q, K]
-		self._induc_noise = Parameter(torch.ones(out_dim, in_dim, num_comp).mul(1e-2).exp().sub(1).log())
+		self._induc_noise = Parameter(torch.ones(s).mul(1e-2).exp().sub(1).log())
 		# induc_value ~ [P+1, D, Q, K, M]
-		self.induc_value_func = InducValueFunc([out_dim, in_dim, num_comp], num_induc, degree)
+		self.induc_value_func = InducValueFunc(s, num_induc, degree)
 		# weight ~ [D, Q, K]
-		self.weight_func = WeightFunc([out_dim, in_dim, num_comp]) if weighted else None
+		self.weight_func = WeightFunc(s) if weighted else None
 	
 	def init_partition(self) -> None:
 		_partition = torch.ones(self.out_dim, self.in_dim, self.num_comp-1)
