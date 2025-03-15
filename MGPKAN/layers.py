@@ -93,11 +93,14 @@ class FCLayer(Layer):
 			q_mean, q_var, weight = self.weight_func(self.center, x_mean, x_var)
 		return q_mean, q_var, weight
 	
-	def induc_value(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> Tensor:
-		_, q_mean, q_var = self.weighted_input(x_mean, x_var)
+	def induc_loc_value(self) -> tuple[Tensor, Tensor]:
+		self.transform_partition()
 		self.transform_induc_loc()
-		self.kernel.transform_lengthscale()
-		return self.induc_value_func(self.induc_loc, self.kernel.lengthscale, q_mean, q_var)
+		z = self.induc_loc
+		u = torch.zeros([])
+		for p in range(self.induc_value_func.degree+1):
+			u = self.induc_value_func.induc_value_coef[p].mul(z.pow(p)).add(u)
+		return z, u
 	
 	def unmixed_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor, Union[Tensor, None]]:
 		"""
