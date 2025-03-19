@@ -30,8 +30,6 @@ class FCLayer(Layer):
 		s = [out_dim, in_dim, num_comp]
 		# partition ~ [D, Q, K-1]
 		self.init_partition()
-		# center ~ [D, Q, K]
-		self._center = Parameter(torch.zeros(s))
 		# kernel ~ [D, Q, K]
 		self.kernel = SquaredExponentialKernel(s)
 		# z ~ [D, Q, K, M]
@@ -40,6 +38,8 @@ class FCLayer(Layer):
 		self._induc_noise = Parameter(torch.ones(s).mul(1e-2).exp().sub(1).log())
 		# induc_value ~ [P+1, D, Q, K, M]
 		self.induc_value_func = InducValueFunc(s, num_induc, degree)
+		# center ~ [D, Q, K]
+		self._center = Parameter(torch.zeros(s)) if weighted else None
 		# weight ~ [D, Q, K]
 		self.weight_func = WeightFunc(s) if weighted else None
 	
@@ -112,16 +112,19 @@ class FCLayer(Layer):
 		q_mean, q_var, weight = self.weighted_input(x_mean, x_var)
 		self.transform_induc_loc()
 		self.kernel.transform_lengthscale()
-		# Kuu_inv ~ [D, Q, M, M]
+		# Kuu_inv ~ [D, Q, K, M, M]
 		Kuu_inv = self.kernel.Kuu_inv(self.induc_loc, self.induc_noise)
-		# Cuf ~ [B, D, Q, M]
+		# Cuf ~ [B, D, Q, K, M]
 		Cuf = self.kernel.Cuf(self.induc_loc, q_mean, q_var)
-		# Cff ~ [B, D, Q]
+		# Cff ~ [B, D, Q, K]
 		Cff = self.kernel.Cff(q_var)
 		# E[u(x)] ~ [B, D, Q, K, M]
 		induc_value = self.induc_value_func(self.induc_loc, self.kernel.lengthscale, q_mean, q_var)
-		w_mean = Kuu_inv.matmul(induc_value.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)
-		w_var = Cff.sub(Kuu_inv.matmul(Cuf.unsqueeze(-1)).squeeze(-1).mul(Cuf).sum(-1)).mul(self.kernel.outputscale)
+		# alpha = Kuu_inv @ Kuf ~ [B, D, Q, K, M]
+		alpha = Kuu_inv.matmul(Cuf.unsqueeze(-1)).squeeze(-1)
+		# w_mean & w_var ~ [B, D, Q, K]
+		w_mean = alpha.mul(induc_value).sum(-1)
+		w_var = Cff.sub(alpha.mul(Cuf).sum(-1)).mul(self.kernel.outputscale)
 		return w_mean, w_var, weight
 
 	def compute_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:

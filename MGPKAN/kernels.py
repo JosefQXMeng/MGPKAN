@@ -43,7 +43,7 @@ class Kernel(Module, ABC):
 		Kuu = self.expectation(self.lengthscale.unsqueeze(-1).unsqueeze(-1), mu)
 		induc_noise = induc_noise.unsqueeze(-1).unsqueeze(-1).mul(torch.eye(Kuu.size(-1)))
 		L = cholesky_ex(Kuu.add(induc_noise)).L
-		L_inv = solve_triangular(L, torch.eye(induc_loc.size(-1)), upper=False)
+		L_inv = solve_triangular(L, torch.eye(L.size(-1)), upper=False)
 		return L_inv.mT.matmul(L_inv)
 
 	def Cuf(self, induc_loc: Tensor, q_mean: Tensor, q_var: Optional[Tensor] = None) -> Tensor:
