@@ -15,13 +15,13 @@ class GPKAN(Network):
 		self,
 		in_dim: int,
 		out_dim: int,
-		hidden_dims: Optional[Union[int, list[int]]],
+		hidden_dim: Optional[Union[int, list[int]]],
 		num_induc: Union[int, list[int]],
 		num_comp: Union[int, list[int]] = 1,
 		weighted: Union[bool, list[bool]] = False,
 		degree: Union[int, list[int]] = 0,
 	):
-		Network.__init__(self, in_dim, out_dim, hidden_dims)
+		Network.__init__(self, in_dim, out_dim, hidden_dim)
 
 		if isinstance(num_induc, int):
 			num_induc = [num_induc] * (len(self.dims)-1)
@@ -39,20 +39,20 @@ class GPKAN(Network):
 			degree = [degree] * (len(self.dims)-1)
 		assert len(degree) == len(self.dims)-1
 
-		layerdict = {}
+		layers = {}
 		for i in range(len(self.dims)-1):
-			layerdict[f"norm_{i}"] = NormLayer()
-			layerdict[f"fc_{i+1}"] = FCLayer(
+			layers[f'norm_{i}'] = NormLayer()
+			layers[f'fc_{i+1}'] = FCLayer(
 				self.dims[i], self.dims[i+1], num_induc[i], num_comp[i], weighted[i], degree[i],
 			)
-		self.layers = ModuleDict(layerdict)
+		self.layers = ModuleDict(layers)
 
 	def forward(self, x: Tensor) -> tuple[Tensor, Union[Tensor, None]]:
-		"""
+		'''
 		x ~ [B, D^0]
 		->
 		f_mean & f_var ~ [B, D^L]
-		"""
+		'''
 		f_mean = x
 		f_var = None
 		for layer in self.layers.values():
@@ -66,14 +66,14 @@ class GPKANR(GPKAN, Regr):
 		self,
 		in_dim: int,
 		out_dim: int,
-		hidden_dims: Optional[Union[int, list[int]]],
+		hidden_dim: Optional[Union[int, list[int]]],
 		num_induc: Union[int, list[int]],
 		num_comp: Union[int, list[int]] = 1,
 		weighted: Union[bool, list[bool]] = False,
 		degree: Union[int, list[int]] = 0,
 		min_noise_var: float = 1e-6,
 	):
-		GPKAN.__init__(self, in_dim, out_dim, hidden_dims, num_induc, num_comp, weighted, degree)
+		GPKAN.__init__(self, in_dim, out_dim, hidden_dim, num_induc, num_comp, weighted, degree)
 		Regr.__init__(self, out_dim, min_noise_var)
 
 	def loglikelihood(self, x: Tensor, y: Tensor) -> Tensor:

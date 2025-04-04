@@ -79,11 +79,11 @@ class FCLayer(Layer):
 	def weighted_input(
 		self, x_mean: Tensor, x_var: Optional[Tensor] = None,
 	) -> tuple[Tensor, Tensor, Union[Tensor, None]]:
-		"""
+		'''
 		x_mean & x_var ~ [B, Q]
 		->
 		q_mean & q_var & weight ~ [B, D, Q, K]
-		"""
+		'''
 		self.transform_partition()
 		if self.weight_func is None:
 			q_mean = x_mean.unsqueeze(1).unsqueeze(-1)
@@ -103,11 +103,11 @@ class FCLayer(Layer):
 		return z, u
 	
 	def unmixed_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor, Union[Tensor, None]]:
-		"""
+		'''
 		x_mean & x_var ~ [B, Q]
 		->
 		w_mean & w_var & weight ~ [B, D, Q, K]
-		"""
+		'''
 		# q_mean & q_var & weight ~ [B, D, Q, K]
 		q_mean, q_var, weight = self.weighted_input(x_mean, x_var)
 		self.transform_induc_loc()
@@ -128,22 +128,22 @@ class FCLayer(Layer):
 		return w_mean, w_var, weight
 
 	def compute_w(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
-		"""
+		'''
 		x_mean & x_var ~ [B, Q]
 		->
 		w_mean & w_var ~ [B, D, Q]
-		"""
+		'''
 		w_mean, w_var, weight = self.unmixed_w(x_mean, x_var)
 		w_mean = w_mean.mul(weight).sum(-1)
 		w_var = w_var.mul(weight.pow(2)).sum(-1)
 		return w_mean, w_var
 
 	def forward(self, x_mean: Tensor, x_var: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
-		"""
+		'''
 		x_mean & x_var ~ [B, Q]
 		->
 		f_mean & f_var ~ [B, D]
-		"""
+		'''
 		w_mean, w_var = self.compute_w(x_mean, x_var)
 		f_mean = w_mean.sum(-1)
 		f_var = w_var.sum(-1) + 1e-6
@@ -151,8 +151,8 @@ class FCLayer(Layer):
 
 	def extra_repr(self) -> str:
 		return (
-			f"in_dim={self.in_dim}, out_dim={self.out_dim}\n"
-			+f"num_induc={self.num_induc}, num_comp={self.num_comp}, degree={self.induc_value_func.degree}"
+			f'in_dim={self.in_dim}, out_dim={self.out_dim}\n'
+			+f'num_induc={self.num_induc}, num_comp={self.num_comp}, degree={self.induc_value_func.degree}'
 		)
 
 

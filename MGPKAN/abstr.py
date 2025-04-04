@@ -25,22 +25,15 @@ class Layer(Module, ABC):
 
 class Network(Module, ABC):
 
-	def __init__(
-		self,
-		in_dim: int,
-		out_dim: int,
-		hidden_dims: Optional[Union[int, list[int]]],
-	):
+	def __init__(self, in_dim: int, out_dim: int, hidden_dim: Optional[Union[int, list[int]]]):
 		Module.__init__(self)
 
-		self.in_dim = in_dim  # D^0
-		self.out_dim = out_dim  # D^L
-		if hidden_dims is None:
-			hidden_dims = []
-		elif isinstance(hidden_dims, int):
-			hidden_dims = [hidden_dims]
+		if hidden_dim is None:
+			hidden_dim = []
+		elif isinstance(hidden_dim, int):
+			hidden_dim = [hidden_dim]
 		# [D^0,...,D^L]
-		self.dims = [in_dim] + hidden_dims + [out_dim]
+		self.dims = [in_dim] + hidden_dim + [out_dim]
 
 	@abstractmethod
 	def forward(self):
@@ -51,7 +44,8 @@ class Regr(ABC):
 
 	def __init__(self, out_dim: int, min_noise_var: float = 1e-6):
 		assert isinstance(self, Network)
-		self._noise_var = Parameter(torch.zeros([out_dim]))
+		
+		self._noise_var = Parameter(torch.ones(out_dim).exp().sub(1).log())
 		self.min_noise_var = min_noise_var
 
 	@property

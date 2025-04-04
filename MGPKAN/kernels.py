@@ -33,12 +33,12 @@ class Kernel(Module, ABC):
 		...
 
 	def Kuu_inv(self, induc_loc: Tensor, induc_noise: Tensor) -> Tensor:
-		"""
+		'''
 		z ~ [D, Q, K, M]
 		induc_noise ~ [D, Q, K]
 		->
 		Kuu_inv ~ [D, Q, K, M, M]
-		"""
+		'''
 		mu = induc_loc.unsqueeze(-1).sub(induc_loc.unsqueeze(-2))
 		Kuu = self.expectation(self.lengthscale.unsqueeze(-1).unsqueeze(-1), mu)
 		induc_noise = induc_noise.unsqueeze(-1).unsqueeze(-1).mul(torch.eye(Kuu.size(-1)))
@@ -47,22 +47,22 @@ class Kernel(Module, ABC):
 		return L_inv.mT.matmul(L_inv)
 
 	def Cuf(self, induc_loc: Tensor, q_mean: Tensor, q_var: Optional[Tensor] = None) -> Tensor:
-		"""
+		'''
 		z ~ [D, Q, K, M]
 		q_mean & q_var ~ [B, D, Q, K]
 		->
 		Cuf ~ [B, D, Q, K, M]
-		"""
+		'''
 		mu = q_mean.unsqueeze(-1).sub(induc_loc)
 		sigma_sq = None if q_var is None else q_var.unsqueeze(-1)
 		return self.expectation(self.lengthscale.unsqueeze(-1), mu, sigma_sq)
 
 	def Cff(self, q_var: Optional[Tensor] = None) -> Tensor:
-		"""
+		'''
 		q_var ~ [B, D, Q, K]
 		->
 		Cff ~ [B, D, Q, K]
-		"""
+		'''
 		sigma_sq = None if q_var is None else q_var.mul(2)
 		return self.expectation(self.lengthscale, None, sigma_sq)
 

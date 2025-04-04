@@ -12,14 +12,20 @@ from .abstr import Network, Regr
 
 class MLP(Network):
 	
-	def __init__(self, in_dim: int, out_dim: int, hidden_dims: list[int], activ: Optional[Module] = None):
-		Network.__init__(self, in_dim, out_dim, hidden_dims)
+	def __init__(
+		self,
+		in_dim: int,
+		out_dim: int,
+		hidden_dim: Optional[Union[int, list[int]]],
+		activ: Optional[Module] = None,
+	):
+		Network.__init__(self, in_dim, out_dim, hidden_dim)
 
 		layers = {}
 		for i in range(1, len(self.dims)):
-			layers[f"fc_{i}"] = Linear(self.dims[i-1], self.dims[i])
+			layers[f'fc_{i}'] = Linear(self.dims[i-1], self.dims[i])
 			if i+1 < len(self.dims):
-				layers[f"activ_{i}"] = SiLU() if activ is None else activ
+				layers[f'activ_{i}'] = SiLU() if activ is None else activ
 		self.layers = ModuleDict(layers)
 	
 	def forward(self, x: Tensor) -> Tensor:
@@ -34,10 +40,10 @@ class GaussianMLP(MLP):
 		self,
 		in_dim: int,
 		out_dim: int,
-		hidden_dims: list[int],
+		hidden_dim: Optional[Union[int, list[int]]],
 		activ: Optional[Module] = None,
 	):
-		MLP.__init__(self, in_dim, out_dim*2, hidden_dims, activ)
+		MLP.__init__(self, in_dim, out_dim*2, hidden_dim, activ)
 
 	def forward(self, x) -> tuple[Tensor, Tensor]:
 		f_mean, f_var = MLP.forward(self, x).tensor_split(2, dim=-1)
@@ -51,11 +57,11 @@ class GaussianMLPR(GaussianMLP, Regr):
 		self,
 		in_dim: int,
 		out_dim: int,
-		hidden_dims: list[int],
+		hidden_dim: Optional[Union[int, list[int]]],
 		activ: Optional[Module] = None,
 		min_noise_var: float = 1e-6,
 	):
-		GaussianMLP.__init__(self, in_dim, out_dim, hidden_dims, activ)
+		GaussianMLP.__init__(self, in_dim, out_dim, hidden_dim, activ)
 		Regr.__init__(self, out_dim, min_noise_var)
 	
 	def loglikelihood(self, x: Tensor, y: Tensor) -> Tensor:

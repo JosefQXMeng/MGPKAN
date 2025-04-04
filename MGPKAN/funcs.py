@@ -31,12 +31,12 @@ class WeightFunc(Module):
 	def forward(
 		self, center: Tensor, x_mean: Tensor, x_var: Optional[Tensor] = None,
 	) -> tuple[Tensor, Tensor, Union[Tensor, None]]:
-		"""
+		'''
 		c ~ [D, Q, K]
 		x_mean & x_var ~ [B, Q]
 		->
 		q_mean & q_var & weight ~ [B, D, Q, K]
-		"""
+		'''
 		lengthscale = self.lengthscale
 		x_mean = x_mean.unsqueeze(1).unsqueeze(-1)
 		if x_var is not None:
@@ -80,11 +80,11 @@ class InducValueFunc(Module):
 	def compute_density(
 		self, lengthscale: Tensor, induc_loc: Tensor, q_mean: Tensor, q_var: Optional[Tensor] = None,
 	) -> tuple[Tensor, Union[Tensor, None]]:
-		"""
+		'''
 		q_mean & q_var ~ [B, D, Q, K]
 		->
 		g_mean & g_var ~ [B, D, Q, K, M]
-		"""
+		'''
 		q_mean = q_mean.unsqueeze(-1)
 		if q_var is not None:
 			q_var = q_var.unsqueeze(-1)
@@ -98,11 +98,11 @@ class InducValueFunc(Module):
 	def forward(
 		self, lengthscale: Tensor, induc_loc: Tensor, q_mean: Tensor, q_var: Optional[Tensor] = None,
 	) -> Tensor:
-		"""
+		'''
 		q_mean & q_var ~ [B, D, Q, K]
 		->
 		E[u(x)] ~ [B, D, Q, K, M]
-		"""
+		'''
 		E_u = self.induc_value_coef[0]
 		if self.degree:
 			g_mean, g_var = self.compute_density(induc_loc, lengthscale, q_mean, q_var)
